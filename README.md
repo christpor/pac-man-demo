@@ -47,4 +47,4 @@ npm run build
 - `src/screens/`: Game state views (Start, Playing, Game Over).
 
 ---
-Created with ❤️ by christpor.
+Created by christpor.
