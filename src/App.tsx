@@ -179,9 +179,17 @@ export default function App() {
   if (screen === 'gameover') return <GameOverScreen score={score} highScore={highScore} onRestart={startGame} />
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      gap: 8,
+      width: '100%',
+      padding: '0 10px',
+      overflow: 'hidden'
+    }}>
       <ScoreBar score={score} highScore={highScore} lives={lives} totalDots={TOTAL_DOTS_INITIAL} dotsLeft={maze.flat().filter(c => c === CELL.DOT || c === CELL.PELLET).length} />
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
         <GameBoard maze={maze} pacman={pacman} ghosts={ghosts} fruit={fruit} onDirectionChange={handleDir} />
         {ready && (
           <div style={{

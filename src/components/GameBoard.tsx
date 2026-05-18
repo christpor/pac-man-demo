@@ -138,6 +138,7 @@ function drawFruit(ctx: CanvasRenderingContext2D) {
 export default function GameBoard({ maze, pacman, ghosts, fruit, onDirectionChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const tickRef = useRef(0)
+  const touchStartRef = useRef<{ x: number, y: number } | null>(null)
 
   const handleKey = useCallback((e: KeyboardEvent) => {
     const map: Record<string, Direction> = {
@@ -145,6 +146,28 @@ export default function GameBoard({ maze, pacman, ghosts, fruit, onDirectionChan
     }
     if (map[e.key]) { e.preventDefault(); onDirectionChange(map[e.key]) }
   }, [onDirectionChange])
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    const touch = e.changedTouches[0]
+    const dx = touch.clientX - touchStartRef.current.x
+    const dy = touch.clientY - touchStartRef.current.y
+    touchStartRef.current = null
+
+    const threshold = 30
+    if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      onDirectionChange(dx > 0 ? 'RIGHT' : 'LEFT')
+    } else {
+      onDirectionChange(dy > 0 ? 'DOWN' : 'UP')
+    }
+  }
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey)
@@ -166,7 +189,16 @@ export default function GameBoard({ maze, pacman, ghosts, fruit, onDirectionChan
       ref={canvasRef}
       width={COLS * CELL_SIZE}
       height={ROWS * CELL_SIZE}
-      style={{ display: 'block' }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{ 
+        display: 'block', 
+        maxWidth: '100vw', 
+        maxHeight: '70vh', 
+        height: 'auto', 
+        touchAction: 'none',
+        backgroundColor: '#000'
+      }}
     />
   )
 }

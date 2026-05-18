@@ -161,7 +161,12 @@ export default function StartScreen({ highScore, onStart }: Props) {
         ref={canvasRef}
         width={W}
         height={H}
-        style={{ display: 'block', margin: '0 auto' }}
+        style={{ 
+          display: 'block', 
+          margin: '0 auto', 
+          maxWidth: '100%', 
+          height: 'auto' 
+        }}
       />
 
       {/* Scoring table */}

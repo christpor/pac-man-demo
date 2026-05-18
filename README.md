@@ -1,75 +1,50 @@
-# Pac-Man Demo 🎮
+# Pac-Man Demo 🎮 — 2026 Edition
 
-A classic Pac-Man game built with React and TypeScript.
-This project was created as a fun demo to show what we can build together.
+A modern, mobile-responsive Pac-Man game built with **React**, **TypeScript**, and **Vite**. This project demonstrates advanced browser-based game development without external game libraries.
 
-## How to Play
+## 🚀 Live Demo
+Play the game live here: **[https://pecmann.netlify.app/](https://pecmann.netlify.app/)**
 
-- Use the **Arrow Keys** to move Pac-Man around the maze
-- Eat all the dots to complete the level
-- Avoid the ghosts — touching one will cost you a life!
-- Eat a **Power Pellet** (the big dot in the corners) to turn ghosts blue
-- While ghosts are blue, you can eat them for bonus points
-- You have **3 lives** — good luck!
+## ✨ Features
+- **Mobile Responsive**: Playable on any device with intuitive swipe controls for iOS and Android.
+- **Advanced Ghost AI**: Fully implemented Chase, Scatter, Frightened, and Eaten modes with intelligent pathfinding.
+- **Procedural Audio**: Classic arcade sounds and background sirens generated via the Web Audio API (no heavy MP3 files).
+- **Smooth Gameplay**: Throttled 10Hz game loop for that authentic retro arcade feel.
+- **Modern Tech Stack**: Built with React 19, TypeScript 5, and Vite 6.
 
-## Scoring
+## 🕹️ How to Play
+### Desktop
+- **Arrow Keys**: Move Pac-Man around the maze.
+- **Enter**: Start or restart the game.
 
-| Action | Points |
-|---|---|
-| Eat a dot | 10 |
-| Eat a Power Pellet | 50 |
-| Eat a frightened ghost | 200 |
+### Mobile
+- **Swipe**: Swipe in the direction you want Pac-Man to turn.
+- **Buttons**: Use the on-screen "Play" buttons to start.
 
-Your best score is saved automatically and shown on the start screen.
+## 📜 Credits
+This project is an educational tribute to the original **Pac-Man** created by **Toru Iwatani** and the team at **Namco** in 1980. This version aims to recreate the core mechanics while showcasing modern web technologies.
 
-## Run Locally
+## 🛠️ Development
 
+### Setup
 ```bash
 npm install
+```
+
+### Run Locally
+```bash
 npm run dev
 ```
 
-Then open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## Build for Production
-
+### Build for Production
 ```bash
 npm run build
 ```
 
-## Deploy to GitHub Pages
-
-```bash
-npm run deploy
-```
-
-This will build the project and push it to the `gh-pages` branch automatically.
-
-## Built With
-
-- [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- [Vite](https://vitejs.dev/) — fast build tool
-- HTML Canvas — for rendering the game
-- No game libraries — everything is built from scratch!
-
-## Project Structure
-
-```
-src/
-  App.tsx              — main screen state machine
-  screens/
-    StartScreen.tsx    — welcome screen
-    GameOverScreen.tsx — game over screen
-  components/
-    GameBoard.tsx      — canvas renderer
-    ScoreBar.tsx       — score and lives display
-  game/
-    maze.ts            — maze grid data
-    pacman.ts          — Pac-Man movement logic
-    ghost.ts           — ghost AI (chase, scatter, frightened)
-    useGameLoop.ts     — game loop using requestAnimationFrame
-```
+## 🏗️ Project Structure
+- `src/game/`: Core logic (Maze, Ghost AI, Pac-Man movement, Audio).
+- `src/components/`: Reusable React components (GameBoard, ScoreBar).
+- `src/screens/`: Game state views (Start, Playing, Game Over).
 
 ---
-
-Thank you for playing! We hope you enjoy this little demo. 🟡
+Created with ❤️ by christpor.
