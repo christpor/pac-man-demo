@@ -153,7 +153,7 @@ export function updateGhosts(
     const isPassable = (cx: number, cy: number) => {
       if (cy < 0 || cy >= maze.length || cx < 0 || cx >= maze[0].length) return false
       if (maze[cy][cx] === 1) return false
-      if (maze[cy][cx] === 4 && mode !== 'eaten' && mode !== 'house' && mode !== 'exiting') return false
+      if (maze[cy][cx] === 4 && mode !== 'eaten') return false
       return true
     }
 
