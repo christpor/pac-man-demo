@@ -115,7 +115,13 @@ export function updateGhosts(
     } else if (mode === 'frightened') {
       dir = randomDir(ghost, maze)
     } else if (mode === 'chase') {
-      dir = chooseDir(ghost, maze, pacX, pacY)
+      // Clyde (id=3) flees when within 8 cells of Pac-Man
+      if (ghost.id === 3 && dist(ghost.x, ghost.y, pacX, pacY) < 8) {
+        const t = SCATTER_TARGETS[ghost.id]
+        dir = chooseDir(ghost, maze, t.x, t.y)
+      } else {
+        dir = chooseDir(ghost, maze, pacX, pacY)
+      }
     } else if (mode === 'scatter') {
       const t = SCATTER_TARGETS[ghost.id]
       dir = chooseDir(ghost, maze, t.x, t.y)

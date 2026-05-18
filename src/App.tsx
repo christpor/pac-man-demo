@@ -5,6 +5,7 @@ import type { Direction, PacMan } from './game/pacman'
 import { createGhosts, updateGhosts, frightenGhosts } from './game/ghost'
 import type { Ghost } from './game/ghost'
 import { useGameLoop } from './game/useGameLoop'
+import { sounds } from './game/sounds'
 import GameBoard from './components/GameBoard'
 import ScoreBar from './components/ScoreBar'
 import StartScreen from './screens/StartScreen'
@@ -14,6 +15,7 @@ import './index.css'
 type Screen = 'start' | 'playing' | 'gameover'
 
 const HS_KEY = 'pacman-high-score'
+const FRUIT_POS = { x: 10, y: 16 }
 const TOTAL_DOTS_INITIAL = (() => {
   const m = createMaze()
   return m.flat().filter(c => c === CELL.DOT || c === CELL.PELLET).length
@@ -32,9 +34,13 @@ export default function App() {
   const [lives, setLives] = useState(3)
   const [highScore, setHighScore] = useState(getHighScore)
   const [ready, setReady] = useState(false)
+  const [fruit, setFruit] = useState({ active: false, shown: false })
 
-  const stateRef = useRef({ maze, pacman, ghosts, score, lives })
-  stateRef.current = { maze, pacman, ghosts, score, lives }
+  const stateRef = useRef({ maze, pacman, ghosts, score, lives, fruit })
+  stateRef.current = { maze, pacman, ghosts, score, lives, fruit }
+
+  const ghostTickRef = useRef(0)
+  const fruitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const startGame = useCallback(() => {
     setMaze(createMaze())
@@ -42,12 +48,14 @@ export default function App() {
     setGhosts(createGhosts())
     setScore(0)
     setLives(3)
+    setFruit({ active: false, shown: false })
+    ghostTickRef.current = 0
     setReady(true)
     setScreen('playing')
+    sounds.start()
     setTimeout(() => setReady(false), 2000)
   }, [])
 
-  // Handle Enter key on start/gameover screens
   useEffect(() => {
     if (screen === 'playing') return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Enter') startGame() }
@@ -57,10 +65,9 @@ export default function App() {
 
   const tick = useCallback(() => {
     if (ready) return
-    const { maze, pacman, ghosts, score, lives } = stateRef.current
-    const dt = 100 // ms per tick at 10fps
+    const { maze, pacman, ghosts, score, lives, fruit } = stateRef.current
+    const dt = 100
 
-    // Move Pac-Man
     const newPac = updatePacMan(pacman, maze)
     const newMaze = maze.map(r => [...r])
     let newScore = score
@@ -71,14 +78,32 @@ export default function App() {
     if (cell === CELL.DOT) {
       newMaze[newPac.y][newPac.x] = CELL.EMPTY
       newScore += 10
+      sounds.dot()
     } else if (cell === CELL.PELLET) {
       newMaze[newPac.y][newPac.x] = CELL.EMPTY
       newScore += 50
       newGhosts = frightenGhosts(ghosts)
+      sounds.pellet()
     }
 
-    // Move ghosts
-    newGhosts = updateGhosts(newGhosts, newMaze, newPac.x, newPac.y, dt)
+    // Fruit bonus
+    const dotsLeft = newMaze.flat().filter(c => c === CELL.DOT || c === CELL.PELLET).length
+    if (!fruit.shown && dotsLeft <= TOTAL_DOTS_INITIAL - 70) {
+      setFruit({ active: true, shown: true })
+      if (fruitTimerRef.current) clearTimeout(fruitTimerRef.current)
+      fruitTimerRef.current = setTimeout(() => setFruit(f => ({ ...f, active: false })), 10000)
+    }
+    if (fruit.active && newPac.x === FRUIT_POS.x && newPac.y === FRUIT_POS.y) {
+      newScore += 100
+      sounds.pellet()
+      setFruit(f => ({ ...f, active: false }))
+    }
+
+    // Move ghosts every 2nd tick
+    ghostTickRef.current++
+    if (ghostTickRef.current % 2 === 0) {
+      newGhosts = updateGhosts(newGhosts, newMaze, newPac.x, newPac.y, dt * 2)
+    }
 
     // Collision
     let newLives = lives
@@ -87,6 +112,7 @@ export default function App() {
       if (g.x === newPac.x && g.y === newPac.y) {
         if (g.mode === 'frightened') {
           newScore += 200
+          sounds.eatGhost()
           return { ...g, mode: 'eaten' as const }
         } else if (g.mode !== 'eaten') {
           died = true
@@ -96,6 +122,7 @@ export default function App() {
     })
 
     if (died) {
+      sounds.death()
       newLives = lives - 1
       if (newLives <= 0) {
         const hs = Math.max(newScore, getHighScore())
@@ -105,24 +132,24 @@ export default function App() {
         setScreen('gameover')
         return
       }
-      // Reset positions, keep maze/score
       setPacman(createPacMan())
       setGhosts(createGhosts())
       setLives(newLives)
       setScore(newScore)
       setMaze(newMaze)
+      ghostTickRef.current = 0
       setReady(true)
       setTimeout(() => setReady(false), 2000)
       return
     }
 
-    // Level complete
-    const dotsLeft = newMaze.flat().filter(c => c === CELL.DOT || c === CELL.PELLET).length
     if (dotsLeft === 0) {
       setScore(newScore)
       setMaze(createMaze())
       setPacman(createPacMan())
       setGhosts(createGhosts())
+      setFruit({ active: false, shown: false })
+      ghostTickRef.current = 0
       setReady(true)
       setTimeout(() => setReady(false), 2000)
       return
@@ -147,7 +174,7 @@ export default function App() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <ScoreBar score={score} highScore={highScore} lives={lives} totalDots={TOTAL_DOTS_INITIAL} dotsLeft={maze.flat().filter(c => c === CELL.DOT || c === CELL.PELLET).length} />
       <div style={{ position: 'relative' }}>
-        <GameBoard maze={maze} pacman={pacman} ghosts={ghosts} onDirectionChange={handleDir} />
+        <GameBoard maze={maze} pacman={pacman} ghosts={ghosts} fruit={fruit} onDirectionChange={handleDir} />
         {ready && (
           <div style={{
             position: 'absolute', top: '50%', left: '50%',
