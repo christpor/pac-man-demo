@@ -70,7 +70,8 @@ function chooseDir(ghost: Ghost, maze: number[][], targetX: number, targetY: num
     const nx = ghost.x + dx
     const ny = ghost.y + dy
     if (ny < 0 || ny >= maze.length || nx < 0 || nx >= maze[0].length) continue
-    if (maze[ny][nx] === 1) continue // wall only — house cells (4) are passable
+    if (maze[ny][nx] === 1) continue
+    if (maze[ny][nx] === 4 && ghost.mode !== 'eaten' && ghost.mode !== 'house' && ghost.mode !== 'exiting') continue
     const d2 = dist(nx, ny, targetX, targetY)
     if (d2 < bestDist) { bestDist = d2; best = d }
   }
@@ -86,7 +87,9 @@ function randomDir(ghost: Ghost, maze: number[][]): Ghost['dir'] {
     const nx = ghost.x + dx
     const ny = ghost.y + dy
     if (ny < 0 || ny >= maze.length || nx < 0 || nx >= maze[0].length) return false
-    return maze[ny][nx] !== 1
+    if (maze[ny][nx] === 1) return false
+    if (maze[ny][nx] === 4 && ghost.mode !== 'eaten' && ghost.mode !== 'house' && ghost.mode !== 'exiting') return false
+    return true
   })
   return valid.length ? valid[Math.floor(Math.random() * valid.length)] : ghost.dir
 }
@@ -126,35 +129,44 @@ export function updateGhosts(
       if (frightenedTimer <= 0) mode = 'chase'
     }
 
+    const currentGhostState = { ...ghost, x, y, dir, mode }
+
     if (mode === 'eaten') {
       const tx = 10, ty = 10
       if (x === tx && y === ty) { mode = 'chase' }
-      else dir = chooseDir(ghost, maze, tx, ty)
+      else dir = chooseDir(currentGhostState, maze, tx, ty)
     } else if (mode === 'frightened') {
-      dir = randomDir(ghost, maze)
+      dir = randomDir(currentGhostState, maze)
     } else if (mode === 'chase') {
       // Clyde flees when within 8 cells
       if (ghost.id === 3 && dist(x, y, pacX, pacY) < 8) {
         const t = SCATTER_TARGETS[ghost.id]
-        dir = chooseDir(ghost, maze, t.x, t.y)
+        dir = chooseDir(currentGhostState, maze, t.x, t.y)
       } else {
-        dir = chooseDir(ghost, maze, pacX, pacY)
+        dir = chooseDir(currentGhostState, maze, pacX, pacY)
       }
     } else if (mode === 'scatter') {
       const t = SCATTER_TARGETS[ghost.id]
-      dir = chooseDir(ghost, maze, t.x, t.y)
+      dir = chooseDir(currentGhostState, maze, t.x, t.y)
+    }
+
+    const isPassable = (cx: number, cy: number) => {
+      if (cy < 0 || cy >= maze.length || cx < 0 || cx >= maze[0].length) return false
+      if (maze[cy][cx] === 1) return false
+      if (maze[cy][cx] === 4 && mode !== 'eaten' && mode !== 'house' && mode !== 'exiting') return false
+      return true
     }
 
     const [dx, dy] = dirDelta(dir)
     const nx = x + dx
     const ny = y + dy
-    if (ny >= 0 && ny < maze.length && nx >= 0 && nx < maze[0].length && maze[ny][nx] !== 1) {
+    if (isPassable(nx, ny)) {
       x = nx; y = ny
     } else {
-      dir = randomDir(ghost, maze)
+      dir = randomDir({ ...currentGhostState, mode, dir }, maze)
       const [dx2, dy2] = dirDelta(dir)
       const nx2 = x + dx2, ny2 = y + dy2
-      if (ny2 >= 0 && ny2 < maze.length && nx2 >= 0 && nx2 < maze[0].length && maze[ny2][nx2] !== 1) {
+      if (isPassable(nx2, ny2)) {
         x = nx2; y = ny2
       }
     }
