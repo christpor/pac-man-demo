@@ -53,7 +53,7 @@ export default function App() {
     setReady(true)
     setScreen('playing')
     sounds.start()
-    setTimeout(() => setReady(false), 2000)
+    setTimeout(() => { setReady(false); sounds.startSiren() }, 2000)
   }, [])
 
   useEffect(() => {
@@ -84,6 +84,7 @@ export default function App() {
       newScore += 50
       newGhosts = frightenGhosts(ghosts)
       sounds.pellet()
+      sounds.startFrightenedSiren()
     }
 
     // Fruit bonus
@@ -129,6 +130,7 @@ export default function App() {
         localStorage.setItem(HS_KEY, String(hs))
         setHighScore(hs)
         setScore(newScore)
+        sounds.stopSiren()
         setScreen('gameover')
         return
       }
@@ -139,11 +141,12 @@ export default function App() {
       setMaze(newMaze)
       ghostTickRef.current = 0
       setReady(true)
-      setTimeout(() => setReady(false), 2000)
+      setTimeout(() => { setReady(false); sounds.startSiren() }, 2000)
       return
     }
 
     if (dotsLeft === 0) {
+      sounds.stopSiren()
       setScore(newScore)
       setMaze(createMaze())
       setPacman(createPacMan())
@@ -151,9 +154,14 @@ export default function App() {
       setFruit({ active: false, shown: false })
       ghostTickRef.current = 0
       setReady(true)
-      setTimeout(() => setReady(false), 2000)
+      setTimeout(() => { setReady(false); sounds.startSiren() }, 2000)
       return
     }
+
+    // Resume normal siren if no ghosts are frightened anymore
+    const wasAnyFrightened = ghosts.some(g => g.mode === 'frightened')
+    const isAnyFrightened = newGhosts.some(g => g.mode === 'frightened')
+    if (wasAnyFrightened && !isAnyFrightened) sounds.startSiren()
 
     setPacman(newPac)
     setMaze(newMaze)
@@ -167,7 +175,7 @@ export default function App() {
     setPacman(p => ({ ...p, nextDir: dir }))
   }, [])
 
-  if (screen === 'start') return <StartScreen highScore={highScore} />
+  if (screen === 'start') return <StartScreen highScore={highScore} onStart={startGame} />
   if (screen === 'gameover') return <GameOverScreen score={score} highScore={highScore} onRestart={startGame} />
 
   return (
