@@ -1,0 +1,141 @@
+import { useEffect, useRef, useCallback } from 'react'
+import { CELL, CELL_SIZE, COLS, ROWS } from '../game/maze'
+import type { PacMan, Direction } from '../game/pacman'
+import type { Ghost } from '../game/ghost'
+
+interface Props {
+  maze: number[][]
+  pacman: PacMan
+  ghosts: Ghost[]
+  onDirectionChange: (dir: Direction) => void
+}
+
+export function drawMaze(ctx: CanvasRenderingContext2D, maze: number[][]) {
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, COLS * CELL_SIZE, ROWS * CELL_SIZE)
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = maze[y][x]
+      const px = x * CELL_SIZE
+      const py = y * CELL_SIZE
+      const cx = px + CELL_SIZE / 2
+      const cy = py + CELL_SIZE / 2
+
+      if (cell === CELL.WALL) {
+        ctx.fillStyle = '#1a1aff'
+        ctx.fillRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2)
+      } else if (cell === CELL.DOT) {
+        ctx.fillStyle = '#ffb8ae'
+        ctx.beginPath()
+        ctx.arc(cx, cy, 2, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (cell === CELL.PELLET) {
+        ctx.fillStyle = '#ffb8ae'
+        ctx.beginPath()
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (cell === CELL.HOUSE) {
+        ctx.fillStyle = '#222'
+        ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE)
+      }
+    }
+  }
+}
+
+function drawPacMan(ctx: CanvasRenderingContext2D, pac: PacMan, tick: number) {
+  const cx = pac.x * CELL_SIZE + CELL_SIZE / 2
+  const cy = pac.y * CELL_SIZE + CELL_SIZE / 2
+  const r = CELL_SIZE / 2 - 2
+
+  const rotMap: Record<Direction, number> = { RIGHT: 0, DOWN: 0.5, LEFT: 1, UP: 1.5 }
+  const rot = rotMap[pac.dir] * Math.PI
+  const mouthAngle = (tick % 2 === 0) ? 0.25 : 0.05
+
+  ctx.fillStyle = '#FFD700'
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.arc(cx, cy, r, rot + mouthAngle * Math.PI, rot + (2 - mouthAngle) * Math.PI)
+  ctx.closePath()
+  ctx.fill()
+}
+
+function drawGhost(ctx: CanvasRenderingContext2D, ghost: Ghost, tick: number) {
+  const cx = ghost.x * CELL_SIZE + CELL_SIZE / 2
+  const cy = ghost.y * CELL_SIZE + CELL_SIZE / 2
+  const r = CELL_SIZE / 2 - 2
+
+  if (ghost.mode === 'eaten') {
+    // Eyes only
+    ctx.fillStyle = '#fff'
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 2, 3, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx + 3, cy - 2, 3, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#00f'
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 2, 1.5, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx + 3, cy - 2, 1.5, 0, Math.PI * 2); ctx.fill()
+    return
+  }
+
+  if (ghost.mode === 'frightened') {
+    const flash = ghost.frightenedTimer < 3000 && tick % 4 < 2
+    ctx.fillStyle = flash ? '#fff' : '#0000cc'
+  } else {
+    ctx.fillStyle = ghost.color
+  }
+
+  // Body
+  ctx.beginPath()
+  ctx.arc(cx, cy - 1, r, Math.PI, 0)
+  ctx.lineTo(cx + r, cy + r)
+  const waveW = r / 2
+  for (let i = 2; i >= 0; i--) {
+    ctx.arc(cx - r + waveW * (2 * i + 1), cy + r, waveW, 0, Math.PI, true)
+  }
+  ctx.closePath()
+  ctx.fill()
+
+  // Eyes
+  if (ghost.mode !== 'frightened') {
+    ctx.fillStyle = '#fff'
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 3, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx + 3, cy - 3, 3, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#00f'
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 1.5, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx + 3, cy - 3, 1.5, 0, Math.PI * 2); ctx.fill()
+  }
+}
+
+export default function GameBoard({ maze, pacman, ghosts, onDirectionChange }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const tickRef = useRef(0)
+
+  const handleKey = useCallback((e: KeyboardEvent) => {
+    const map: Record<string, Direction> = {
+      ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT'
+    }
+    if (map[e.key]) { e.preventDefault(); onDirectionChange(map[e.key]) }
+  }, [onDirectionChange])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [handleKey])
+
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext('2d')
+    if (!ctx) return
+    tickRef.current++
+    drawMaze(ctx, maze)
+    drawPacMan(ctx, pacman, tickRef.current)
+    ghosts.forEach(g => drawGhost(ctx, g, tickRef.current))
+  })
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={COLS * CELL_SIZE}
+      height={ROWS * CELL_SIZE}
+      style={{ display: 'block' }}
+    />
+  )
+}
